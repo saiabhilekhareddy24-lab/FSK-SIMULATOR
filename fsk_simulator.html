@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>FSK Simulator</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #eef3f8;
+    color: #17202a;
+}
+
+.container {
+    width: 92%;
+    max-width: 1100px;
+    margin: 30px auto;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.12);
+}
+
+h1 {
+    text-align: center;
+    color: #1f4e79;
+}
+
+.description {
+    text-align: center;
+    color: #555;
+}
+
+.controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+label {
+    font-weight: bold;
+    color: #1f4e79;
+}
+
+input {
+    width: 100%;
+    padding: 11px;
+    margin-top: 7px;
+    border: 1px solid #bbb;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+button {
+    display: block;
+    margin: 25px auto;
+    padding: 12px 30px;
+    background: #1f4e79;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #163a5c;
+}
+
+.result {
+    padding: 15px;
+    background: #f5f8fb;
+    border-left: 5px solid #1f4e79;
+    margin-bottom: 20px;
+}
+
+canvas {
+    width: 100%;
+    height: 250px;
+    border: 1px solid #ccc;
+    background: white;
+    margin-top: 10px;
+}
+
+h2 {
+    color: #1f4e79;
+    margin-top: 30px;
+}
+
+.status {
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    padding: 15px;
+    border-radius: 6px;
+    margin-top: 25px;
+}
+
+.success {
+    background: #d9f5df;
+    color: #16803c;
+}
+
+.error {
+    background: #fde2e2;
+    color: #c62828;
+}
+
+@media(max-width:700px) {
+
+    .controls {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>FSK Simulator</h1>
+
+<p class="description">
+Frequency Shift Keying Modulation and Demodulation Simulator
+</p>
+
+<div class="controls">
+
+<div>
+<label>Binary Data</label>
+<input
+    type="text"
+    id="binaryInput"
+    value="10110010"
+    maxlength="16">
+</div>
+
+<div>
+<label>Frequency for Binary 0 (Hz)</label>
+<input
+    type="number"
+    id="freq0"
+    value="5"
+    min="1">
+</div>
+
+<div>
+<label>Frequency for Binary 1 (Hz)</label>
+<input
+    type="number"
+    id="freq1"
+    value="10"
+    min="1">
+</div>
+
+</div>
+
+<button onclick="simulateFSK()">
+Simulate FSK
+</button>
+
+<div class="result">
+
+<p>
+<strong>Input Data:</strong>
+<span id="inputDisplay">---</span>
+</p>
+
+<p>
+<strong>FSK Frequencies:</strong>
+<span id="frequencyDisplay">---</span>
+</p>
+
+<p>
+<strong>Demodulated Data:</strong>
+<span id="outputDisplay">---</span>
+</p>
+
+</div>
+
+<h2>Binary Input Signal</h2>
+
+<canvas id="binaryCanvas"
+        width="1000"
+        height="250">
+</canvas>
+
+<h2>FSK Modulated Signal</h2>
+
+<canvas id="fskCanvas"
+        width="1000"
+        height="250">
+</canvas>
+
+<h2>Demodulated Output</h2>
+
+<canvas id="outputCanvas"
+        width="1000"
+        height="250">
+</canvas>
+
+<div id="status" class="status">
+Click "Simulate FSK" to start the simulation.
+</div>
+
+</div>
+
+<script>
+
+/*
+    FSK SIMULATOR
+
+    Binary 0 -> Frequency f0
+    Binary 1 -> Frequency f1
+*/
+
+
+function validateInput(data, f0, f1) {
+
+    if (!/^[01]+$/.test(data)) {
+
+        alert(
+            "Please enter only binary values (0 and 1)."
+        );
+
+        return false;
+    }
+
+    if (f0 <= 0 || f1 <= 0) {
+
+        alert(
+            "Frequencies must be greater than zero."
+        );
+
+        return false;
+    }
+
+    if (f0 === f1) {
+
+        alert(
+            "Frequencies for 0 and 1 must be different."
+        );
+
+        return false;
+    }
+
+    return true;
+}
+
+
+/*
+    Convert binary data into FSK frequency sequence.
+*/
+
+function modulateFSK(data, f0, f1) {
+
+    let frequencies = [];
+
+    for (let bit of data) {
+
+        if (bit === "0") {
+            frequencies.push(f0);
+        }
+        else {
+            frequencies.push(f1);
+        }
+
+    }
+
+    return frequencies;
+}
+
+
+/*
+    Recover binary data from the FSK frequency sequence.
+*/
+
+function demodulateFSK(frequencies, f0, f1) {
+
+    let output = "";
+
+    for (let frequency of frequencies) {
+
+        if (frequency === f0) {
+            output += "0";
+        }
+        else if (frequency === f1) {
+            output += "1";
+        }
+
+    }
+
+    return output;
+}
+
+
+/*
+    Draw background grid.
+*/
+
+function drawGrid(ctx, width, height) {
+
+    ctx.strokeStyle = "#e5e7e9";
+    ctx.lineWidth = 1;
+
+    for (let x = 0; x <= width; x += 50) {
+
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+
+    }
+
+    for (let y = 0; y <= height; y += 25) {
+
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+
+    }
+
+}
+
+
+/*
+    Draw binary waveform.
+*/
+
+function drawBinarySignal(data) {
+
+    const canvas =
+        document.getElementById("binaryCanvas");
+
+    const ctx = canvas.getContext("2d");
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    drawGrid(ctx, width, height);
+
+    const bitWidth = width / data.length;
+
+    const high = 70;
+    const low = 180;
+
+    ctx.strokeStyle = "#1976d2";
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+
+    for (let i = 0; i < data.length; i++) {
+
+        const level =
+            data[i] === "1" ? high : low;
+
+        const startX = i * bitWidth;
+        const endX = (i + 1) * bitWidth;
+
+        if (i === 0) {
+
+            ctx.moveTo(startX, level);
+
+        }
+        else {
+
+            const previousLevel =
+                data[i - 1] === "1"
+                    ? high
+                    : low;
+
+            ctx.lineTo(startX, previousLevel);
+            ctx.lineTo(startX, level);
+
+        }
+
+        ctx.lineTo(endX, level);
+
+        ctx.fillStyle = "#17202a";
+        ctx.font = "16px Arial";
+
+        ctx.fillText(
+            data[i],
+            startX + bitWidth / 2 - 5,
+            35
+        );
+
+    }
+
+    ctx.stroke();
+
+}
+
+
+/*
+    Draw FSK waveform.
+*/
+
+function drawFSKSignal(data, f0, f1) {
+
+    const canvas =
+        document.getElementById("fskCanvas");
+
+    const ctx = canvas.getContext("2d");
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    drawGrid(ctx, width, height);
+
+    const bitWidth =
+        width / data.length;
+
+    const center =
+        height / 2;
+
+    ctx.strokeStyle = "#d32f2f";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+
+    for (let i = 0; i < data.length; i++) {
+
+        const bit = data[i];
+
+        const cycles =
+            bit === "1"
+                ? 5
+                : 2.5;
+
+        const startX =
+            i * bitWidth;
+
+        for (let j = 0; j <= 100; j++) {
+
+            const progress =
+                j / 100;
+
+            const x =
+                startX +
+                progress * bitWidth;
+
+            const angle =
+                2 *
+                Math.PI *
+                cycles *
+                progress;
+
+            const y =
+                center -
+                65 *
+                Math.sin(angle);
+
+            if (i === 0 && j === 0) {
+                ctx.moveTo(x, y);
+            }
+            else {
+                ctx.lineTo(x, y);
+            }
+
+        }
+
+        ctx.fillStyle = "#17202a";
+        ctx.font = "15px Arial";
+
+        ctx.fillText(
+            bit === "1" ? "f1" : "f0",
+            startX + bitWidth / 2 - 8,
+            35
+        );
+
+    }
+
+    ctx.stroke();
+
+}
+
+
+/*
+    Draw demodulated binary signal.
+*/
+
+function drawOutputSignal(data) {
+
+    const canvas =
+        document.getElementById("outputCanvas");
+
+    const ctx = canvas.getContext("2d");
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    drawGrid(ctx, width, height);
+
+    const bitWidth =
+        width / data.length;
+
+    const high = 70;
+    const low = 180;
+
+    ctx.strokeStyle = "#16803c";
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+
+    for (let i = 0; i < data.length; i++) {
+
+        const level =
+            data[i] === "1"
+                ? high
+                : low;
+
+        const startX =
+            i * bitWidth;
+
+        const endX =
+            (i + 1) * bitWidth;
+
+        if (i === 0) {
+
+            ctx.moveTo(startX, level);
+
+        }
+        else {
+
+            const previousLevel =
+                data[i - 1] === "1"
+                    ? high
+                    : low;
+
+            ctx.lineTo(startX, previousLevel);
+            ctx.lineTo(startX, level);
+
+        }
+
+        ctx.lineTo(endX, level);
+
+        ctx.fillStyle = "#17202a";
+        ctx.font = "16px Arial";
+
+        ctx.fillText(
+            data[i],
+            startX + bitWidth / 2 - 5,
+            35
+        );
+
+    }
+
+    ctx.stroke();
+
+}
+
+
+/*
+    Main simulation function.
+*/
+
+function simulateFSK() {
+
+    const data =
+        document.getElementById(
+            "binaryInput"
+        ).value.trim();
+
+    const f0 =
+        Number(
+            document.getElementById(
+                "freq0"
+            ).value
+        );
+
+    const f1 =
+        Number(
+            document.getElementById(
+                "freq1"
+            ).value
+        );
+
+
+    if (!validateInput(data, f0, f1)) {
+        return;
+    }
+
+
+    const frequencies =
+        modulateFSK(
+            data,
+            f0,
+            f1
+        );
+
+
+    const recoveredData =
+        demodulateFSK(
+            frequencies,
+            f0,
+            f1
+        );
+
+
+    document.getElementById(
+        "inputDisplay"
+    ).textContent = data;
+
+
+    document.getElementById(
+        "frequencyDisplay"
+    ).textContent =
+        frequencies.join(" Hz, ") +
+        " Hz";
+
+
+    document.getElementById(
+        "outputDisplay"
+    ).textContent =
+        recoveredData;
+
+
+    drawBinarySignal(data);
+
+    drawFSKSignal(
+        data,
+        f0,
+        f1
+    );
+
+    drawOutputSignal(
+        recoveredData
+    );
+
+
+    const status =
+        document.getElementById(
+            "status"
+        );
+
+
+    if (data === recoveredData) {
+
+        status.className =
+            "status success";
+
+        status.textContent =
+            "✓ SIMULATION PASSED — " +
+            "Input and demodulated data are identical.";
+
+    }
+    else {
+
+        status.className =
+            "status error";
+
+        status.textContent =
+            "✗ SIMULATION FAILED — " +
+            "Data mismatch detected.";
+
+    }
+
+}
+
+
+/*
+    Run default simulation when page loads.
+*/
+
+window.onload = function() {
+
+    simulateFSK();
+
+};
+
+</script>
+
+</body>
+</html>
